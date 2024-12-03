@@ -1,74 +1,53 @@
-name: WordPress CI/CD Workflow
+name: WordPress CI/CD with Cypress
 
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
-  setup-environment:
+  setup-wordpress:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the code
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      # Step 2: Install and Start MySQL
-      - name: Install and Start MySQL
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mysql-server
-          sudo mkdir -p /var/run/mysqld
-          sudo chown -R mysql:mysql /var/run/mysqld
-          sudo service mysql start
+    - name: Setup WordPress Environment
+      run: |
+        # Install required dependencies
+        sudo apt-get update
+        sudo apt-get install -y apache2 php libapache2-mod-php php-mysql mysql-server wget unzip
+        
+        # Start MySQL service
+        sudo service mysql start
+        sleep 10  # Allow MySQL to initialize
+        
+        # Configure root user for password-based authentication
+        sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'rootpassword';"
+        sudo mysql -e "FLUSH PRIVILEGES;"
+        
+        # Test the connection
+        sudo mysql -u root -prootpassword -e "SHOW DATABASES;"
+        
+        # Set up WordPress database and user
+        sudo mysql -u root -prootpassword -e "CREATE DATABASE wordpress;"
+        sudo mysql -u root -prootpassword -e "CREATE USER 'wp_user'@'localhost' IDENTIFIED BY 'password';"
+        sudo mysql -u root -prootpassword -e "GRANT ALL PRIVILEGES ON wordpress.* TO 'wp_user'@'localhost';"
+        sudo mysql -u root -prootpassword -e "FLUSH PRIVILEGES;"
+        
+        # Download and configure WordPress
+        wget https://wordpress.org/latest.zip
+        unzip latest.zip
+        sudo mv wordpress /var/www/html/
+        sudo chown -R www-data:www-data /var/www/html/wordpress
+        cp /var/www/html/wordpress/wp-config-sample.php /var/www/html/wordpress/wp-config.php
+        sed -i 's/database_name_here/wordpress/' /var/www/html/wordpress/wp-config.php
+        sed -i 's/username_here/wp_user/' /var/www/html/wordpress/wp-config.php
+        sed -i 's/password_here/password/' /var/www/html/wordpress/wp-config.php
+        
+        # Start Apache server
+        sudo service apache2 start
 
-      # Step 3: Configure MySQL Root Access Without Password
-      - name: Configure MySQL Root Access
-        run: |
-          sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH 'auth_socket';"
-          sudo mysql -e "FLUSH PRIVILEGES;"
-
-      # Step 4: Verify MySQL Service
-      - name: Verify MySQL Service
-        run: |
-          sudo mysql -u root -e "SHOW DATABASES;"
-
-      # Step 5: Create WordPress Database
-      - name: Set Up WordPress Database
-        run: |
-          sudo mysql -u root -e "CREATE DATABASE wordpress;"
-
-      # Step 6: Install PHP and Dependencies
-      - name: Install PHP and dependencies
-        run: |
-          sudo apt-get install -y php php-mysql unzip curl
-
-      # Step 7: Download and Set up WordPress
-      - name: Set up WordPress
-        run: |
-          curl -O https://wordpress.org/latest.tar.gz
-          tar -xzf latest.tar.gz
-          mv wordpress/* .
-          cp wp-config-sample.php wp-config.php
-          sed -i "s/database_name_here/wordpress/" wp-config.php
-          sed -i "s/username_here/root/" wp-config.php
-          sed -i "s/password_here//" wp-config.php
-          php -S 127.0.0.1:8080 &
-
-      # Step 8: Wait for WordPress Setup
-      - name: Wait for WordPress Setup
-        run: |
-          for i in {1..10}; do
-            curl -s http://127.0.0.1:8080/wp-admin/install.php && break
-            sleep 5
-          done
-
-      # Step 9: Debug MySQL Logs (Optional)
-      - name: Debug MySQL Logs
-        if: failure()
-        run: |
-          sudo cat /var/log/mysql/error.log
+    - name: Verify WordPress Setup
+      run: curl -I http://localhost/wordpress
