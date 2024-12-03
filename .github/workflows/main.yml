@@ -17,31 +17,37 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Install MySQL and Configure No-Password Root Access
-      - name: Install and Configure MySQL
+      # Step 2: Install and Start MySQL
+      - name: Install and Start MySQL
         run: |
           sudo apt-get update
           sudo apt-get install -y mysql-server
+          sudo mkdir -p /var/run/mysqld
+          sudo chown -R mysql:mysql /var/run/mysqld
           sudo service mysql start
+
+      # Step 3: Configure MySQL Root Access Without Password
+      - name: Configure MySQL Root Access
+        run: |
           sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH 'auth_socket';"
           sudo mysql -e "FLUSH PRIVILEGES;"
 
-      # Step 3: Verify MySQL Service and Access
+      # Step 4: Verify MySQL Service
       - name: Verify MySQL Service
         run: |
           sudo mysql -u root -e "SHOW DATABASES;"
 
-      # Step 4: Create WordPress Database
-      - name: Create WordPress Database
+      # Step 5: Create WordPress Database
+      - name: Set Up WordPress Database
         run: |
           sudo mysql -u root -e "CREATE DATABASE wordpress;"
 
-      # Step 5: Install PHP and Dependencies
+      # Step 6: Install PHP and Dependencies
       - name: Install PHP and dependencies
         run: |
           sudo apt-get install -y php php-mysql unzip curl
 
-      # Step 6: Download and Configure WordPress
+      # Step 7: Download and Set up WordPress
       - name: Set up WordPress
         run: |
           curl -O https://wordpress.org/latest.tar.gz
@@ -53,10 +59,16 @@ jobs:
           sed -i "s/password_here//" wp-config.php
           php -S 127.0.0.1:8080 &
 
-      # Step 7: Wait for WordPress to be Ready
+      # Step 8: Wait for WordPress Setup
       - name: Wait for WordPress Setup
         run: |
           for i in {1..10}; do
             curl -s http://127.0.0.1:8080/wp-admin/install.php && break
             sleep 5
           done
+
+      # Step 9: Debug MySQL Logs (Optional)
+      - name: Debug MySQL Logs
+        if: failure()
+        run: |
+          sudo cat /var/log/mysql/error.log
