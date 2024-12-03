@@ -23,6 +23,9 @@ jobs:
           sudo service mysql start
           sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH 'mysql_native_password' BY 'rootpassword';"
           sudo mysql -e "FLUSH PRIVILEGES;"
+      - name: Verify MySQL Root User
+        run: |
+          sudo mysql -u root -prootpassword -e "SELECT User, Host, plugin FROM mysql.user;"     
 
       # Step 3: Create a WordPress database
       - name: Set Up WordPress Database
