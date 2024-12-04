@@ -25,11 +25,12 @@ jobs:
           # Check MySQL Service Status
           sudo service mysql status
 
-      # Step 3: Set Password for Root User
-      - name: Set Password for Root User
+      # Step 3: Configure Root User to Allow Password Authentication
+      - name: Configure Root User
         run: |
-          # Set a password for the root user
-          sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'root_password';"
+          # Run MySQL commands as root using sudo and allow password login
+          sudo mysql -e "UPDATE mysql.user SET plugin='mysql_native_password' WHERE User='root';"
+          sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'root_password';"
           sudo mysql -e "FLUSH PRIVILEGES;"
 
       # Step 4: Show Databases and Create Database
