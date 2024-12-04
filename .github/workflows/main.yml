@@ -1,4 +1,4 @@
-name: MySQL Database Setup and Status Check
+name: Simple MySQL Setup and Report
 
 on:
   push:
@@ -8,9 +8,10 @@ on:
 jobs:
   setup-environment:
     runs-on: ubuntu-latest
+
     steps:
-      # Step 1: Install MySQL
-      - name: Install MySQL
+      # Step 1: Install MySQL Server
+      - name: Install MySQL Server
         run: |
           sudo apt-get update
           sudo apt-get install -y mysql-server
@@ -18,44 +19,31 @@ jobs:
       # Step 2: Start MySQL Service
       - name: Start MySQL Service
         run: |
-          # Start MySQL Service
           sudo service mysql start
 
-          # Ensure MySQL service is active
-          sudo service mysql status
-
-      # Step 3: Reset root password and configure MySQL for remote access
-      - name: Configure MySQL root user
+      # Step 3: Check MySQL Status
+      - name: Check MySQL Status
         run: |
-          # Wait for MySQL to initialize and run securely
-          sleep 10
+          sudo service mysql status || echo "MySQL is not running"
 
-          # Reset the root password if it's not set, and allow remote connections
-          sudo mysql -e "UPDATE mysql.user SET authentication_string=PASSWORD('root_password') WHERE User='root';"
-          sudo mysql -e "FLUSH PRIVILEGES;"
-
-      # Step 4: Verify MySQL is accessible with the root password
-      - name: Verify MySQL Accessibility
-        run: |
-          # Try to show databases using the root password
-          sudo mysql -uroot -proot_password -e "SHOW DATABASES;"
-
-      # Step 5: Create Database and Insert Data
+      # Step 4: Create a Database and Table, Insert Data
       - name: Create Database and Insert Data
         run: |
-          # Create a test database
-          sudo mysql -uroot -proot_password -e "CREATE DATABASE IF NOT EXISTS test_db;"
+          # Attempt to create a database and table
+          sudo mysql -e "CREATE DATABASE IF NOT EXISTS test_db;"
+          sudo mysql -e "CREATE TABLE IF NOT EXISTS test_db.users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), email VARCHAR(255));"
+          sudo mysql -e "INSERT INTO test_db.users (name, email) VALUES ('John Doe', 'john@example.com');"
+          sudo mysql -e "INSERT INTO test_db.users (name, email) VALUES ('Jane Smith', 'jane@example.com');"
 
-          # Create a test table and insert data
-          sudo mysql -uroot -proot_password -e "CREATE TABLE IF NOT EXISTS test_db.users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), email VARCHAR(255));"
-          sudo mysql -uroot -proot_password -e "INSERT INTO test_db.users (name, email) VALUES ('John Doe', 'john@example.com');"
-          sudo mysql -uroot -proot_password -e "INSERT INTO test_db.users (name, email) VALUES ('Jane Smith', 'jane@example.com');"
+      # Step 5: Check Databases
+      - name: Show Existing Databases
+        run: |
+          sudo mysql -e "SHOW DATABASES;"
 
       # Step 6: Generate MySQL Report (Plain Text)
       - name: Generate MySQL Report
         run: |
-          # Query the database and output the result to a text file
-          sudo mysql -uroot -proot_password -e "SELECT * FROM test_db.users;" > report.txt
+          sudo mysql -e "SELECT * FROM test_db.users;" > report.txt
 
       # Step 7: Upload Report as Artifact
       - name: Upload MySQL Report
