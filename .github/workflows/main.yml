@@ -20,14 +20,14 @@ jobs:
       - name: SSH into App Server and Set Up WordPress
         uses: appleboy/ssh-action@v0.1.6
         with:
-          host: 172.22.26.65
+          host: 172.22.26.65 # Replace with your server's IP address
           username: ubuntu # Replace with your server's username
-          key: ${{ secrets.SSH_PRIVATE_KEY }} # Add your SSH private key to GitHub Secrets
+          key: ${{ secrets.SSH_PRIVATE_KEY }} # Reference the SSH private key added to GitHub Secrets
           port: 22
           script: |
             # Update and Install Dependencies
             sudo apt-get update
-            sudo apt-get install -y mysql-server php php-mysql unzip curl
+            sudo apt-get install -y mysql-server php php-mysql unzip curl apache2
 
             # Configure MySQL
             sudo service mysql start
@@ -55,8 +55,7 @@ jobs:
             sudo sed -i "s/username_here/runner/" /var/www/html/wp-config.php
             sudo sed -i "s/password_here/runner_password/" /var/www/html/wp-config.php
 
-            # Start Apache Server (Optional: Replace with your actual web server setup)
-            sudo apt-get install -y apache2
+            # Start Apache Server
             sudo service apache2 start
 
             # Test WordPress Accessibility
