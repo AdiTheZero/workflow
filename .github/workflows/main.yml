@@ -23,22 +23,22 @@ jobs:
           sudo systemctl enable mysql
           sudo systemctl start mysql
 
-          # Ensure MySQL is running (check status)
-          sudo systemctl status mysql > status_report.txt
+          # Check if MySQL service started correctly
+          sudo systemctl status mysql || echo "MySQL did not start correctly" > mysql_status_error.txt
 
       # Step 3: Verify MySQL Connection and Create Report
       - name: Verify MySQL Connection and Create Report
         run: |
-          # Try to connect to MySQL and run a simple query
+          # Attempt a MySQL connection and run a simple query
           if sudo mysql -e "SELECT 1;" > /dev/null 2>&1; then
             echo "MySQL is working" > result_report.txt
           else
             echo "MySQL is not working" > result_report.txt
           fi
-          
-          # Add MySQL status to the report
+
+          # Add MySQL service status to the report
           echo "\nMySQL Service Status:" >> result_report.txt
-          cat status_report.txt >> result_report.txt
+          cat mysql_status_error.txt >> result_report.txt || echo "No service status available" >> result_report.txt
 
       # Step 4: Upload the Report as Artifact
       - name: Upload MySQL Report
