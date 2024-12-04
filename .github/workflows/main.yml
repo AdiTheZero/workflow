@@ -1,4 +1,4 @@
-name: Simple MySQL Setup and Report
+name: Check MySQL Status and Generate Report
 
 on:
   push:
@@ -9,55 +9,40 @@ jobs:
   setup-environment:
     runs-on: ubuntu-latest
     steps:
-      # Step 1: Checkout the code (optional)
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      # Step 2: Install and Start MySQL
-      - name: Install and Start MySQL
+      # Step 1: Install MySQL
+      - name: Install MySQL
         run: |
           # Update and Install MySQL Server
           sudo apt-get update
           sudo apt-get install -y mysql-server
 
-          # Start MySQL Service with systemctl
+      # Step 2: Start MySQL Service
+      - name: Start MySQL Service
+        run: |
+          # Start MySQL Service using systemctl
           sudo systemctl enable mysql
           sudo systemctl start mysql
 
-          # Check MySQL Logs for Errors (if it fails to start)
-          sudo journalctl -xe | grep mysql
+          # Ensure MySQL is running (check status)
+          sudo systemctl status mysql > status_report.txt
 
-          # Ensure MySQL is running (status check)
-          sudo systemctl status mysql
-
-          # Verify MySQL is working
-          sudo mysql -uroot -proot_password -e "SELECT 1;" || echo "MySQL is not working"
-
-      # Step 3: Create Database, Table, and Insert Data
-      - name: Create Database, Table, and Insert Data
+      # Step 3: Verify MySQL Connection and Create Report
+      - name: Verify MySQL Connection and Create Report
         run: |
-          # Create Database
-          sudo mysql -uroot -proot_password -e "CREATE DATABASE IF NOT EXISTS test_db;"
+          # Try to connect to MySQL and run a simple query
+          if sudo mysql -e "SELECT 1;" > /dev/null 2>&1; then
+            echo "MySQL is working" > result_report.txt
+          else
+            echo "MySQL is not working" > result_report.txt
+          fi
           
-          # Create Table
-          sudo mysql -uroot -proot_password -e "CREATE TABLE IF NOT EXISTS test_db.users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), email VARCHAR(255));"
+          # Add MySQL status to the report
+          echo "\nMySQL Service Status:" >> result_report.txt
+          cat status_report.txt >> result_report.txt
 
-          # Insert Data
-          sudo mysql -uroot -proot_password -e "INSERT INTO test_db.users (name, email) VALUES ('John Doe', 'john@example.com');"
-          sudo mysql -uroot -proot_password -e "INSERT INTO test_db.users (name, email) VALUES ('Jane Smith', 'jane@example.com');"
-
-      # Step 4: Generate MySQL Report (with results in plain text)
-      - name: Generate MySQL Report
-        run: |
-          # Query the database and output the result to a text file
-          sudo mysql -uroot -proot_password -e "SELECT * FROM test_db.users;" > report.txt
-          
-          # Check if the report was generated
-          cat report.txt
-
-      # Step 5: Upload the Report as Artifact
+      # Step 4: Upload the Report as Artifact
       - name: Upload MySQL Report
         uses: actions/upload-artifact@v3
         with:
-          name: mysql-report   # Artifact name
-          path: report.txt     # Path to the report file
+          name: mysql-status-report   # Artifact name
+          path: result_report.txt     # Path to the report file
