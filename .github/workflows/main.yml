@@ -28,9 +28,9 @@ jobs:
 
           # Configure MySQL
           sudo mysql -e "CREATE DATABASE wordpress;"
-          sudo mysql -e "CREATE USER 'runner'@'localhost' IDENTIFIED BY 'runner_password';"
-          sudo mysql -e "GRANT ALL PRIVILEGES ON wordpress.* TO 'runner'@'localhost';"
-          sudo mysql -e "FLUSH PRIVILEGES;"
+          #sudo mysql -e "CREATE USER 'runner'@'localhost' IDENTIFIED BY 'runner_password';"
+          #sudo mysql -e "GRANT ALL PRIVILEGES ON wordpress.* TO 'runner'@'localhost';"
+          #sudo mysql -e "FLUSH PRIVILEGES;"
 
           # Verify MySQL Setup
           sudo mysql -e "SHOW DATABASES;"
