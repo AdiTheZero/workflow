@@ -1,4 +1,4 @@
-name: Simple MySQL Setup and Report
+name: MySQL Docker Setup and Report
 
 on:
   push:
@@ -10,42 +10,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Install MySQL Server
-      - name: Install MySQL Server
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mysql-server
+      # Step 1: Checkout the code (optional)
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      # Step 2: Start MySQL Service
-      - name: Start MySQL Service
+      # Step 2: Set up MySQL container using Docker
+      - name: Set up MySQL Docker container
         run: |
-          sudo service mysql start
+          # Pull the official MySQL Docker image
+          docker pull mysql:8.0
 
-      # Step 3: Check MySQL Status
-      - name: Check MySQL Status
-        run: |
-          sudo service mysql status || echo "MySQL is not running"
+          # Run MySQL container with environment variables for root password
+          docker run --name mysql-container -e MYSQL_ROOT_PASSWORD=root_password -d mysql:8.0
 
-      # Step 4: Create a Database and Table, Insert Data
+          # Wait for MySQL to be ready (give it some time to initialize)
+          sleep 30
+
+      # Step 3: Create Database and Table in MySQL container
       - name: Create Database and Insert Data
         run: |
-          # Attempt to create a database and table
-          sudo mysql -e "CREATE DATABASE IF NOT EXISTS test_db;"
-          sudo mysql -e "CREATE TABLE IF NOT EXISTS test_db.users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), email VARCHAR(255));"
-          sudo mysql -e "INSERT INTO test_db.users (name, email) VALUES ('John Doe', 'john@example.com');"
-          sudo mysql -e "INSERT INTO test_db.users (name, email) VALUES ('Jane Smith', 'jane@example.com');"
+          # Create database and table using Docker MySQL client
+          docker exec -i mysql-container mysql -u root -proot_password -e "CREATE DATABASE IF NOT EXISTS test_db;"
+          docker exec -i mysql-container mysql -u root -proot_password -e "CREATE TABLE IF NOT EXISTS test_db.users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), email VARCHAR(255));"
+          docker exec -i mysql-container mysql -u root -proot_password -e "INSERT INTO test_db.users (name, email) VALUES ('John Doe', 'john@example.com');"
+          docker exec -i mysql-container mysql -u root -proot_password -e "INSERT INTO test_db.users (name, email) VALUES ('Jane Smith', 'jane@example.com');"
 
-      # Step 5: Check Databases
-      - name: Show Existing Databases
+      # Step 4: Show Databases and Generate Report
+      - name: Show Databases and Generate Report
         run: |
-          sudo mysql -e "SHOW DATABASES;"
+          # Show databases and generate report from the container
+          docker exec -i mysql-container mysql -u root -proot_password -e "SHOW DATABASES;"
+          docker exec -i mysql-container mysql -u root -proot_password -e "SELECT * FROM test_db.users;" > report.txt
 
-      # Step 6: Generate MySQL Report (Plain Text)
-      - name: Generate MySQL Report
-        run: |
-          sudo mysql -e "SELECT * FROM test_db.users;" > report.txt
-
-      # Step 7: Upload Report as Artifact
+      # Step 5: Upload the Report as Artifact
       - name: Upload MySQL Report
         uses: actions/upload-artifact@v3
         with:
