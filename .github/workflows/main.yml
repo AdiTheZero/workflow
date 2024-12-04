@@ -12,7 +12,6 @@ jobs:
       # Step 1: Install MySQL
       - name: Install MySQL
         run: |
-          # Update and Install MySQL Server
           sudo apt-get update
           sudo apt-get install -y mysql-server
 
@@ -22,30 +21,43 @@ jobs:
           # Start MySQL Service
           sudo service mysql start
 
-          # Check MySQL Service Status
+          # Ensure MySQL service is active
           sudo service mysql status
 
-      # Step 3: Configure Root User to Allow Password Authentication
-      - name: Configure Root User
+      # Step 3: Reset root password and configure MySQL for remote access
+      - name: Configure MySQL root user
         run: |
-          # Run MySQL commands as root using sudo and allow password login
-          sudo mysql -e "UPDATE mysql.user SET plugin='mysql_native_password' WHERE User='root';"
-          sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'root_password';"
+          # Wait for MySQL to initialize and run securely
+          sleep 10
+
+          # Reset the root password if it's not set, and allow remote connections
+          sudo mysql -e "UPDATE mysql.user SET authentication_string=PASSWORD('root_password') WHERE User='root';"
           sudo mysql -e "FLUSH PRIVILEGES;"
 
-      # Step 4: Show Databases and Create Database
-      - name: Show Databases and Create test_db
+      # Step 4: Verify MySQL is accessible with the root password
+      - name: Verify MySQL Accessibility
         run: |
-          # Show existing databases
+          # Try to show databases using the root password
           sudo mysql -uroot -proot_password -e "SHOW DATABASES;"
 
-          # Create Database if it doesn't exist
+      # Step 5: Create Database and Insert Data
+      - name: Create Database and Insert Data
+        run: |
+          # Create a test database
           sudo mysql -uroot -proot_password -e "CREATE DATABASE IF NOT EXISTS test_db;"
 
-          # Show Databases again to confirm creation
-          sudo mysql -uroot -proot_password -e "SHOW DATABASES;"
+          # Create a test table and insert data
+          sudo mysql -uroot -proot_password -e "CREATE TABLE IF NOT EXISTS test_db.users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), email VARCHAR(255));"
+          sudo mysql -uroot -proot_password -e "INSERT INTO test_db.users (name, email) VALUES ('John Doe', 'john@example.com');"
+          sudo mysql -uroot -proot_password -e "INSERT INTO test_db.users (name, email) VALUES ('Jane Smith', 'jane@example.com');"
 
-      # Step 5: Upload the Report as Artifact (optional)
+      # Step 6: Generate MySQL Report (Plain Text)
+      - name: Generate MySQL Report
+        run: |
+          # Query the database and output the result to a text file
+          sudo mysql -uroot -proot_password -e "SELECT * FROM test_db.users;" > report.txt
+
+      # Step 7: Upload Report as Artifact
       - name: Upload MySQL Report
         uses: actions/upload-artifact@v3
         with:
