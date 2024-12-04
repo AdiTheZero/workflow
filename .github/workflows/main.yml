@@ -1,5 +1,4 @@
 name: MySQL Database Setup and Status Check
-
 on:
   push:
     branches:
