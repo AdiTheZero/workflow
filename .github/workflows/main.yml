@@ -20,8 +20,8 @@ jobs:
       - name: Start MySQL Service
         run: |
           # Start MySQL Service using systemctl
-          sudo systemctl enable mysql
-          sudo systemctl start mysql
+          sudo service mysql status
+          sudo  service start mysql
 
           # Check if MySQL service started correctly
           sudo systemctl status mysql || echo "MySQL did not start correctly" > mysql_status_error.txt
