@@ -20,6 +20,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y mysql-server
 
+          # Set root password
+          sudo mysql -e "UPDATE mysql.user SET authentication_string=PASSWORD('root_password') WHERE User='root';"
+          sudo mysql -e "FLUSH PRIVILEGES;"
+
           # Start MySQL Service
           sudo service mysql start
 
@@ -27,26 +31,26 @@ jobs:
           sudo service mysql status
 
           # Verify MySQL is working
-          sudo mysql -e "SELECT 1;" || echo "MySQL is not working"
+          sudo mysql -uroot -proot_password -e "SELECT 1;" || echo "MySQL is not working"
 
       # Step 3: Create Database, Table, and Insert Data
       - name: Create Database, Table, and Insert Data
         run: |
           # Create Database
-          sudo mysql -e "CREATE DATABASE IF NOT EXISTS test_db;"
+          sudo mysql -uroot -proot_password -e "CREATE DATABASE IF NOT EXISTS test_db;"
           
           # Create Table
-          sudo mysql -e "CREATE TABLE IF NOT EXISTS test_db.users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), email VARCHAR(255));"
+          sudo mysql -uroot -proot_password -e "CREATE TABLE IF NOT EXISTS test_db.users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), email VARCHAR(255));"
 
           # Insert Data
-          sudo mysql -e "INSERT INTO test_db.users (name, email) VALUES ('John Doe', 'john@example.com');"
-          sudo mysql -e "INSERT INTO test_db.users (name, email) VALUES ('Jane Smith', 'jane@example.com');"
+          sudo mysql -uroot -proot_password -e "INSERT INTO test_db.users (name, email) VALUES ('John Doe', 'john@example.com');"
+          sudo mysql -uroot -proot_password -e "INSERT INTO test_db.users (name, email) VALUES ('Jane Smith', 'jane@example.com');"
 
       # Step 4: Generate MySQL Report (with results in plain text)
       - name: Generate MySQL Report
         run: |
           # Query the database and output the result to a text file
-          sudo mysql -e "SELECT * FROM test_db.users;" > report.txt
+          sudo mysql -uroot -proot_password -e "SELECT * FROM test_db.users;" > report.txt
           
           # Check if the report was generated
           cat report.txt
