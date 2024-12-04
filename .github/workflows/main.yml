@@ -1,53 +1,71 @@
-name: WordPress CI/CD with Cypress
+name: WordPress CI/CD Workflow
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  setup-wordpress:
+  setup-environment:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      # Step 1: Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Setup WordPress Environment
-      run: |
-        # Install required dependencies
-        sudo apt-get update
-        sudo apt-get install -y apache2 php libapache2-mod-php php-mysql mysql-server wget unzip
-        
-        # Start MySQL service
-        sudo service mysql start
-        sleep 10  # Allow MySQL to initialize
-        
-        # Configure root user for password-based authentication
-        #sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'rootpassword';"
-        #sudo mysql -e "FLUSH PRIVILEGES;"
-        
-        # Test the connection
-        sudo mysql -u root -prootpassword -e "SHOW DATABASES;"
-        
-        # Set up WordPress database and user
-        #sudo mysql -u root -prootpassword -e "CREATE DATABASE wordpress;"
-        #sudo mysql -u root -prootpassword -e "CREATE USER 'wp_user'@'localhost' IDENTIFIED BY 'password';"
-        #sudo mysql -u root -prootpassword -e "GRANT ALL PRIVILEGES ON wordpress.* TO 'wp_user'@'localhost';"
-        #sudo mysql -u root -prootpassword -e "FLUSH PRIVILEGES;"
-        
-        # Download and configure WordPress
-        wget https://wordpress.org/latest.zip
-        unzip latest.zip
-        sudo mv wordpress /var/www/html/
-        sudo chown -R www-data:www-data /var/www/html/wordpress
-        sudo cp /var/www/html/wordpress/wp-config-sample.php /var/www/html/wordpress/wp-config.php
-        sudo sed -i 's/database_name_here/wordpress/' /var/www/html/wordpress/wp-config.php
-        sudo sed -i 's/username_here/wp_user/' /var/www/html/wordpress/wp-config.php
-        sudo sed -i 's/password_here/password/' /var/www/html/wordpress/wp-config.php
-        
-        # Start Apache server
-        sudo service apache2 start
+      # Step 2: SSH into the App Server and Set Up WordPress
+      - name: SSH into App Server and Set Up WordPress
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: 172.22.26.65
+          username: ubuntu # Replace with your server's username
+          key: ${{ secrets.SSH_PRIVATE_KEY }} # Add your SSH private key to GitHub Secrets
+          port: 22
+          script: |
+            # Update and Install Dependencies
+            sudo apt-get update
+            sudo apt-get install -y mysql-server php php-mysql unzip curl
 
-    - name: Verify WordPress Setup
-      run: curl -I http://localhost/wordpress
+            # Configure MySQL
+            sudo service mysql start
+            sudo mysql --user=root <<EOF
+            UPDATE mysql.user SET plugin = 'mysql_native_password' WHERE user = 'root';
+            ALTER USER 'root'@'localhost' IDENTIFIED BY 'root_password';
+            FLUSH PRIVILEGES;
+            CREATE DATABASE wordpress;
+            CREATE USER 'runner'@'localhost' IDENTIFIED BY 'runner_password';
+            GRANT ALL PRIVILEGES ON wordpress.* TO 'runner'@'localhost';
+            FLUSH PRIVILEGES;
+            EOF
+
+            # Verify MySQL Setup
+            sudo mysql -uroot -proot_password -e "SHOW DATABASES;" || echo "Failed to show databases as root user"
+            sudo mysql -urunner -prunner_password -e "SHOW DATABASES;" || echo "Failed to show databases as runner user"
+
+            # Download and Configure WordPress
+            curl -O https://wordpress.org/latest.tar.gz
+            tar -xzf latest.tar.gz
+            sudo mv wordpress/* /var/www/html/
+            sudo chown -R www-data:www-data /var/www/html
+            sudo cp /var/www/html/wp-config-sample.php /var/www/html/wp-config.php
+            sudo sed -i "s/database_name_here/wordpress/" /var/www/html/wp-config.php
+            sudo sed -i "s/username_here/runner/" /var/www/html/wp-config.php
+            sudo sed -i "s/password_here/runner_password/" /var/www/html/wp-config.php
+
+            # Start Apache Server (Optional: Replace with your actual web server setup)
+            sudo apt-get install -y apache2
+            sudo service apache2 start
+
+            # Test WordPress Accessibility
+            for i in {1..10}; do
+              if curl -s http://127.0.0.1/wp-admin/install.php; then
+                echo "WordPress is ready!"
+                break
+              else
+                echo "Retrying WordPress setup..."
+                sleep 5
+              fi
+            done
