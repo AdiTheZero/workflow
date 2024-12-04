@@ -1,4 +1,4 @@
-name: Check MySQL Status and Generate Report
+name: MySQL Database Setup and Status Check
 
 on:
   push:
@@ -19,33 +19,27 @@ jobs:
       # Step 2: Start MySQL Service
       - name: Start MySQL Service
         run: |
-          # Start MySQL Service using systemctl (reliable method)
-          sudo systemctl enable mysql
-          sudo systemctl start mysql || echo "systemctl start failed" > mysql_error.txt
+          # Start MySQL Service
+          sudo service mysql start
 
           # Check MySQL Service Status
-          sudo systemctl status mysql || echo "MySQL did not start correctly" >> mysql_error.txt
+          sudo service mysql status
 
-          # Check MySQL socket and log errors (if MySQL still not working)
-          sudo journalctl -xe | grep mysql || echo "MySQL journal errors" >> mysql_error.txt
-
-      # Step 3: Verify MySQL Connection and Create Report
-      - name: Verify MySQL Connection and Create Report
+      # Step 3: Show Databases and Create Database
+      - name: Show Databases and Create test_db
         run: |
-          # Verify MySQL is working
-          if sudo mysql -e "SELECT 1;" > /dev/null 2>&1; then
-            echo "MySQL is working" > result_report.txt
-          else
-            echo "MySQL is not working" > result_report.txt
-          fi
+          # Show existing databases
+          sudo mysql -e "SHOW DATABASES;"
 
-          # Add MySQL service status to the report
-          echo "\nMySQL Service Status:" >> result_report.txt
-          cat mysql_error.txt >> result_report.txt || echo "No service status available" >> result_report.txt
+          # Create Database if it doesn't exist
+          sudo mysql -e "CREATE DATABASE IF NOT EXISTS test_db;"
 
-      # Step 4: Upload the Report as Artifact
+          # Show Databases again to confirm creation
+          sudo mysql -e "SHOW DATABASES;"
+
+      # Step 4: Upload the Report as Artifact (optional)
       - name: Upload MySQL Report
         uses: actions/upload-artifact@v3
         with:
-          name: mysql-status-report   # Artifact name
-          path: result_report.txt     # Path to the report file
+          name: mysql-report
+          path: report.txt
