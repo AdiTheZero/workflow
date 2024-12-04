@@ -36,8 +36,8 @@ jobs:
           # Configure MySQL
           sudo mysql -e "CREATE DATABASE IF NOT EXISTS wordpress;"
           #sudo mysql -e "CREATE USER IF NOT EXISTS 'runner'@'localhost' IDENTIFIED BY 'runner_password';"
-          sudo GRANT ALL PRIVILEGES ON wordpress.* TO 'runner'@'localhost' IDENTIFIED BY 'runner_password';
-          sudo mysql -e "FLUSH PRIVILEGES;"
+          #sudo GRANT ALL PRIVILEGES ON wordpress.* TO 'runner'@'localhost' IDENTIFIED BY 'runner_password';
+          #sudo mysql -e "FLUSH PRIVILEGES;"
 
           # Verify MySQL Setup
           sudo mysql -e "SHOW DATABASES;"
