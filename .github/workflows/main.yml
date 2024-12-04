@@ -47,6 +47,9 @@ jobs:
         run: |
           # Query the database and output the result to a text file
           sudo mysql -e "SELECT * FROM test_db.users;" > report.txt
+          
+          # Check if the report was generated
+          cat report.txt
 
       # Step 5: Upload the Report as Artifact
       - name: Upload MySQL Report
