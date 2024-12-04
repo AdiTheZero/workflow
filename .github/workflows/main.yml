@@ -20,15 +20,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y mysql-server
 
-          # Set root password
-          sudo mysql -e "UPDATE mysql.user SET authentication_string=PASSWORD('root_password') WHERE User='root';"
-          sudo mysql -e "FLUSH PRIVILEGES;"
+          # Start MySQL Service with systemctl
+          sudo systemctl enable mysql
+          sudo systemctl start mysql
 
-          # Start MySQL Service
-          sudo service mysql start
+          # Check MySQL Logs for Errors (if it fails to start)
+          sudo journalctl -xe | grep mysql
 
-          # Check MySQL Service Status
-          sudo service mysql status
+          # Ensure MySQL is running (status check)
+          sudo systemctl status mysql
 
           # Verify MySQL is working
           sudo mysql -uroot -proot_password -e "SELECT 1;" || echo "MySQL is not working"
