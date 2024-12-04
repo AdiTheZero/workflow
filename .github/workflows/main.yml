@@ -19,17 +19,20 @@ jobs:
       # Step 2: Start MySQL Service
       - name: Start MySQL Service
         run: |
-          # Start MySQL Service using 
-          sudo service mysql status
-          sudo service mysql start
+          # Start MySQL Service using systemctl (reliable method)
+          sudo systemctl enable mysql
+          sudo systemctl start mysql || echo "systemctl start failed" > mysql_error.txt
 
-          # Check if MySQL service started correctly
-          sudo service status mysql || echo "MySQL did not start correctly" > mysql_status_error.txt
+          # Check MySQL Service Status
+          sudo systemctl status mysql || echo "MySQL did not start correctly" >> mysql_error.txt
+
+          # Check MySQL socket and log errors (if MySQL still not working)
+          sudo journalctl -xe | grep mysql || echo "MySQL journal errors" >> mysql_error.txt
 
       # Step 3: Verify MySQL Connection and Create Report
       - name: Verify MySQL Connection and Create Report
         run: |
-          # Attempt a MySQL connection and run a simple query
+          # Verify MySQL is working
           if sudo mysql -e "SELECT 1;" > /dev/null 2>&1; then
             echo "MySQL is working" > result_report.txt
           else
@@ -38,7 +41,7 @@ jobs:
 
           # Add MySQL service status to the report
           echo "\nMySQL Service Status:" >> result_report.txt
-          cat mysql_status_error.txt >> result_report.txt || echo "No service status available" >> result_report.txt
+          cat mysql_error.txt >> result_report.txt || echo "No service status available" >> result_report.txt
 
       # Step 4: Upload the Report as Artifact
       - name: Upload MySQL Report
