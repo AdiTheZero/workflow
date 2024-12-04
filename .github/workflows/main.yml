@@ -17,14 +17,8 @@ jobs:
         uses: actions/checkout@v3
 
       # Step 2: SSH into the App Server and Set Up WordPress
-      - name: SSH into App Server and Set Up WordPress
-        uses: appleboy/ssh-action@v0.1.6
-        with:
-          host: 172.22.26.65 # Replace with your server's IP address
-          username: ubuntu # Replace with your server's username
-          key: ${{ secrets.SSH_PRIVATE_KEY }} # Reference the SSH private key added to GitHub Secrets
-          port: 22
-          script: |
+      - name: install and Start MySql
+        run: |
             # Update and Install Dependencies
             sudo apt-get update
             sudo apt-get install -y mysql-server php php-mysql unzip curl apache2
