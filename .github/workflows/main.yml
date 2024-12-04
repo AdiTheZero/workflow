@@ -1,10 +1,7 @@
-name: MySQL Setup Workflow
+name: Simple MySQL Setup and Report
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
     branches:
       - main
 
@@ -12,11 +9,11 @@ jobs:
   setup-environment:
     runs-on: ubuntu-latest
     steps:
-      # Step 1: Checkout the code (optional, if you need code for other purposes)
+      # Step 1: Checkout the code (optional)
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Install MySQL and start the service
+      # Step 2: Install and Start MySQL
       - name: Install and Start MySQL
         run: |
           # Update and Install MySQL Server
@@ -26,11 +23,34 @@ jobs:
           # Start MySQL Service
           sudo service mysql start
 
-          # Check MySQL Status
+          # Check MySQL Service Status
           sudo service mysql status
 
-          # Check if MySQL is running
+          # Verify MySQL is working
           sudo mysql -e "SELECT 1;" || echo "MySQL is not working"
 
-          # Display MySQL version to confirm it's installed and running
-          mysql --version
+      # Step 3: Create Database, Table, and Insert Data
+      - name: Create Database, Table, and Insert Data
+        run: |
+          # Create Database
+          sudo mysql -e "CREATE DATABASE IF NOT EXISTS test_db;"
+          
+          # Create Table
+          sudo mysql -e "CREATE TABLE IF NOT EXISTS test_db.users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), email VARCHAR(255));"
+
+          # Insert Data
+          sudo mysql -e "INSERT INTO test_db.users (name, email) VALUES ('John Doe', 'john@example.com');"
+          sudo mysql -e "INSERT INTO test_db.users (name, email) VALUES ('Jane Smith', 'jane@example.com');"
+
+      # Step 4: Generate MySQL Report (with results in plain text)
+      - name: Generate MySQL Report
+        run: |
+          # Query the database and output the result to a text file
+          sudo mysql -e "SELECT * FROM test_db.users;" > report.txt
+
+      # Step 5: Upload the Report as Artifact
+      - name: Upload MySQL Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: mysql-report   # Artifact name
+          path: report.txt     # Path to the report file
